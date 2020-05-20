@@ -37,7 +37,7 @@ fn main() {
         if i % 10 == 0 {
             printer.print(
                 format!(
-                    "{} read {} bytes\n{} total ({}/s)\nstats:\n{}",
+                    "{} read {} bytes\n{} total ({}/s)\n---\n{}",
                     i,
                     num_read,
                     bytes_to_human(sum_read),
