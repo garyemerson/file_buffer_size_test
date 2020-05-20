@@ -57,16 +57,17 @@ fn main() {
 }
 
 fn calc_stats(times: &HashMap<usize, (u128, u64)>) -> String {
-    let mut rates = times.iter()
+    let mut rates: Vec<(usize, f64, u64)> = times.iter()
         .map(|(size, (nanos, total_read))| {
             let bytes_per_sec = *total_read as f64 * 1e9 / *nanos as f64;
-            (*size, bytes_per_sec)
+            (*size, bytes_per_sec, *total_read)
         })
-        .collect::<Vec<(usize, f64)>>();
+        .collect();
     rates.sort_by(|a, b| b.1.partial_cmp(&a.1).expect("partial_cmp"));
     rates.into_iter()
         .take(7)
-        .map(|(size, rate)| format!("{}: {}/s", size, bytes_to_human(rate as u64)))
+        .map(|(size, rate, total_read)|
+            format!("{}: {}/s ({})", size, bytes_to_human(rate as u64), bytes_to_human(total_read)))
         .collect::<Vec<String>>()
         .join("\n")
 }
@@ -82,24 +83,24 @@ fn bytes_to_human(num_bytes: u64) -> String {
 }
 
 struct Printer {
-    lines_printed: Option<i32>
+    newlines_printed: Option<i32>
 }
 
 impl Printer {
     fn new() -> Printer {
-        Printer { lines_printed: None }
+        Printer { newlines_printed: None }
     }
 
     fn print(&mut self, s: String) {
         let clear_line_str = "\r\x1b[K";
         let move_up_str = "\x1b[1A";
-        let num_clears = self.lines_printed.unwrap_or(0) as usize + 1;
+        let num_clears = self.newlines_printed.unwrap_or(0) as usize + 1;
         let reset_str: String = vec![clear_line_str; num_clears].join(move_up_str);
 
         print!("{}{}", reset_str, s);
         io::stdout().flush().ok().expect("Could not flush stdout");
 
         let num_nls = s.chars().filter(|c| *c == '\n').count() as i32;
-        self.lines_printed = Some(num_nls);
+        self.newlines_printed = Some(num_nls);
     }
 }
