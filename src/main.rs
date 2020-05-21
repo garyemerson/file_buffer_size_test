@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use std::io::prelude::*;
 use std::fs::File;
-use std::{env, io};
-use std::time::{/*self,*/ SystemTime};
+use std::io::prelude::*;
 use std::num::Wrapping;
+use std::time::{/*self,*/ SystemTime};
+use std::{env, io};
 use rand::Rng;
 // use std::thread;
 
@@ -16,7 +16,7 @@ fn main() {
     let mut checksum: Wrapping<u8> = Wrapping(0);
     let mut i = 0;
     let mut sum_read: u64 = 0;
-    let mut times: HashMap<usize, (u128, u64)> = HashMap::new();
+    let mut times: HashMap<usize, (u128, u64, u32)> = HashMap::new();
     let now = SystemTime::now();
     let mut printer = Printer::new();
     loop {
@@ -29,6 +29,7 @@ fn main() {
         let entry = times.entry(len).or_insert((0, 0));
         entry.0 += elapsed_nano;
         entry.1 += num_read as u64;
+        entry.2 += 1;
         sum_read += num_read as u64;
         if num_read == 0 {
             println!("\nFinished reading file");
@@ -57,17 +58,17 @@ fn main() {
 }
 
 fn calc_stats(times: &HashMap<usize, (u128, u64)>) -> String {
-    let mut rates: Vec<(usize, f64, u64)> = times.iter()
-        .map(|(size, (nanos, total_read))| {
+    let mut rates: Vec<(usize, f64, u64, u32)> = times.iter()
+        .map(|(size, (nanos, total_read, num_reads))| {
             let bytes_per_sec = *total_read as f64 * 1e9 / *nanos as f64;
-            (*size, bytes_per_sec, *total_read)
+            (*size, bytes_per_sec, *total_read, num_reads)
         })
         .collect();
     rates.sort_by(|a, b| b.1.partial_cmp(&a.1).expect("partial_cmp"));
     rates.into_iter()
         .take(7)
-        .map(|(size, rate, total_read)|
-            format!("{}: {}/s ({})", size, bytes_to_human(rate as u64), bytes_to_human(total_read)))
+        .map(|(size, rate, total_read, num_reads)|
+            format!("{}: {}/s ({} across {} reads)", size, bytes_to_human(rate as u64), bytes_to_human(total_read), num_reads))
         .collect::<Vec<String>>()
         .join("\n")
 }
@@ -76,7 +77,7 @@ fn bytes_to_human(num_bytes: u64) -> String {
     let prefixes = [("GB", 1e9), ("MB", 1e6), ("KB", 1e3)];
     for (p, n) in &prefixes {
         if num_bytes as f64 >= *n {
-            return format!("{:.2}{}", num_bytes as f64/ n, p);
+            return format!("{:.2}{}", num_bytes as f64 / n, p);
         }
     }
     format!("{}B", num_bytes)
