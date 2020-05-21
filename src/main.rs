@@ -26,7 +26,7 @@ fn main() {
         let start = std::time::Instant::now();
         let num_read = f.read(buffer_tmp).expect("read call failed");
         let elapsed_nano = start.elapsed().as_nanos();
-        let entry = times.entry(len).or_insert((0, 0));
+        let entry = times.entry(len).or_insert((0, 0, 0));
         entry.0 += elapsed_nano;
         entry.1 += num_read as u64;
         entry.2 += 1;
@@ -57,11 +57,11 @@ fn main() {
     println!("checksum is {}", checksum);
 }
 
-fn calc_stats(times: &HashMap<usize, (u128, u64)>) -> String {
+fn calc_stats(times: &HashMap<usize, (u128, u64, u32)>) -> String {
     let mut rates: Vec<(usize, f64, u64, u32)> = times.iter()
         .map(|(size, (nanos, total_read, num_reads))| {
             let bytes_per_sec = *total_read as f64 * 1e9 / *nanos as f64;
-            (*size, bytes_per_sec, *total_read, num_reads)
+            (*size, bytes_per_sec, *total_read, *num_reads)
         })
         .collect();
     rates.sort_by(|a, b| b.1.partial_cmp(&a.1).expect("partial_cmp"));
